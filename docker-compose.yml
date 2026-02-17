@@ -6,4 +6,4 @@ services:
     restart : always
     environment : 
       - TELEGRAM_BOT_TOKEN=7656418594:AAFZCXnIeP-q-DP1EVFhUxkWglIWyK_qHQo
-      - API_URL=https://api.alanchand.com/?type=golds&token=cOEnbIvxoGqYXhNnbAwB
+      - API_URL=https://api.alanchand.com/?type=golds&token=FG5IgtTCIaVB7cMTDofD
