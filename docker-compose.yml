@@ -1,0 +1,9 @@
+services:
+  gold-price-bot :
+    build :
+      context : .
+      dockerfile : ./Dockerfile
+    restart : always
+    environment : 
+      - TELEGRAM_BOT_TOKEN=7656418594:AAFZCXnIeP-q-DP1EVFhUxkWglIWyK_qHQo
+      - API_URL=https://api.alanchand.com/?type=golds&token=cOEnbIvxoGqYXhNnbAwB
