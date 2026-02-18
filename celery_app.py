@@ -42,7 +42,7 @@ def send_channel_message():
     text = get_full_report()
     
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {"chat_id": channel_id, "text": text}
+    payload = {"chat_id": channel_id, "text": text, "parse_mode": "HTML"}
     
     try:
         requests.post(url, json=payload, timeout=10)
