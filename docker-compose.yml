@@ -1,9 +1,44 @@
 services:
-  gold-price-bot :
-    build :
-      context : .
-      dockerfile : ./Dockerfile
-    restart : always
-    environment : 
+  bot:
+    build: .
+    restart: always
+    command: python main.py
+    environment:
       - TELEGRAM_BOT_TOKEN=7656418594:AAFZCXnIeP-q-DP1EVFhUxkWglIWyK_qHQo
-      - API_URL=https://api.alanchand.com/?type=golds&token=FG5IgtTCIaVB7cMTDofD
+      - CHANNEL_ID=@test_bot_meraj
+      # - PROXY_URL=socks5h://10.222.2.6:1080
+      - CELERY_BROKER=redis://redis:6379
+      - CELERY_BACKEND=redis://redis:6379
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    restart: always
+    command: celery -A celery_app worker --loglevel=info
+    environment:
+      - TELEGRAM_BOT_TOKEN=7656418594:AAFZCXnIeP-q-DP1EVFhUxkWglIWyK_qHQo
+      - CHANNEL_ID=@test_bot_meraj
+      # - PROXY_URL=socks5h://10.222.2.6:1080
+      - CELERY_BROKER=redis://redis:6379
+      - CELERY_BACKEND=redis://redis:6379
+    depends_on:
+      - redis
+
+  beat:
+    build: .
+    restart: always
+    command: celery -A celery_app beat --loglevel=info
+    environment:
+      - TELEGRAM_BOT_TOKEN=7656418594:AAFZCXnIeP-q-DP1EVFhUxkWglIWyK_qHQo
+      - CHANNEL_ID=@test_bot_meraj
+      - CELERY_BROKER=redis://redis:6379
+      - CELERY_BACKEND=redis://redis:6379
+    depends_on:
+      - redis
+
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
