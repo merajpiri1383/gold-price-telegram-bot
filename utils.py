@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-import yfinance as yf
 from datetime import datetime
 import pytz
 
@@ -13,65 +12,62 @@ buttons = [
 ]
 
 def get_tgju_data():
-    """یک تابع کمکی برای دریافت قیمت‌ها از TGJU"""
+    """دریافت تمامی قیمت‌ها (طلا، دلار و انس) از سایت TGJU"""
     url = 'https://www.tgju.org/'
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # استخراج دلار
-        dollar_elem = soup.find('tr', {'data-market-row': 'price_dollar_rl'})
-        dollar = dollar_elem.find('td', class_='nf').text.strip() if dollar_elem else "نامشخص"
-        
-        # استخراج طلا ۱۸
-        gold_elem = soup.find('tr', {'data-market-row': 'geram18'})
-        gold18 = gold_elem.find('td', class_='nf').text.strip() if gold_elem else "نامشخص"
-        
-        return {"dollar": dollar, "gold_18k": gold18}
+        def get_text_by_row(slug):
+            """تابع کمکی برای یافتن قیمت بر اساس اسلاگ"""
+            try:
+                tag = soup.find('tr', {'data-market-row': slug})
+                if tag:
+                    price = tag.find('td', class_='nf').text.strip()
+                    return price
+                return "خطا"
+            except:
+                return "خطا"
+
+        return {
+            "dollar": get_text_by_row('price_dollar_rl'),
+            "gold_18k": get_text_by_row('geram18'),
+            "ounce": get_text_by_row('ons') # دریافت انس جهانی از TGJU
+        }
     except Exception as e:
         print(f"Error TGJU: {e}")
-        return {"dollar": "خطا", "gold_18k": "خطا"}
+        return {"dollar": "خطا", "gold_18k": "خطا", "ounce": "خطا"}
 
-def get_ounce_price():
-    """دریافت قیمت انس از یاهو"""
-    try:
-        ticker = yf.Ticker("GC=F")
-        price = ticker.history(period="1d")['Close'].iloc[-1]
-        return f"{price:,.2f}$"
-    except:
-        return "خطا"
-
-def get_current_time():
-    return datetime.now(pytz.timezone('Asia/Tehran')).strftime("%H:%M")
+def get_current_datetime():
+    """دریافت تاریخ و زمان فعلی تهران"""
+    now = datetime.now(pytz.timezone('Asia/Tehran'))
+    # فرمت خروجی: سال/ماه/روز | ساعت:دقیقه
+    return now.strftime("%Y/%m/%d | %H:%M")
 
 def get_price_by_slug(slug):
-    """این تابع برای دکمه‌های ربات استفاده می‌شود"""
-    if slug == "ounce":
-        price = get_ounce_price()
-        return f"💰 <b>انس جهانی:</b> {price}"
-    
-    # برای دلار و طلا نیاز به TGJU داریم
+    """این تابع برای پاسخ به دکمه‌های تکی ربات استفاده می‌شود"""
     data = get_tgju_data()
     
-    if slug == "dollar":
-        return f"💵 <b>دلار آزاد:</b> {data['dollar']} ریال"
+    if slug == "ounce":
+        return f"💰 انس جهانی: <b>{data['ounce']}</b> دلار"
+    elif slug == "dollar":
+        return f"💵 دلار آزاد: <b>{data['dollar']}</b> ریال"
     elif slug == "gold_18k":
-        return f"⚜️ <b>طلا ۱۸ عیار:</b> {data['gold_18k']} ریال"
+        return f"⚜️ طلا ۱۸ عیار: <b>{data['gold_18k']}</b> ریال"
     elif slug == "full_report":
-        return get_full_report() # اگر دکمه گزارش کامل را زد
+        return get_full_report()
     else:
         return "گزینه نامعتبر است."
 
 def get_full_report():
     """این تابع برای ارسال خودکار به کانال استفاده می‌شود"""
-    tgju = get_tgju_data()
-    ounce = get_ounce_price()
-    time = get_current_time()
+    data = get_tgju_data()
+    date_time = get_current_datetime()
     
     return (
-        f"طلا ۱۸ عیار: {tgju['gold_18k']}\n"
-        f"اونس جهانی: {ounce}\n"
-        f"دلار آزاد: {tgju['dollar']}\n"
-        f"{time} | TradingView + TGJU"
+        f"⚜️ طلا ۱۸ عیار: <b>{data['gold_18k']}</b>\n"
+        f"💰 اونس جهانی: <b>{data['ounce']}</b>\n"
+        f"💵 دلار آزاد: <b>{data['dollar']}</b>\n"
+        f"{date_time} 📅"
     )
