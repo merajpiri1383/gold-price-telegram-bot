@@ -5,14 +5,15 @@ import pytz
 
 # لیست دکمه‌ها برای نمایش در ربات
 buttons = [
-    {"name": "طلای ۱۸ عیار", "slug": "gold_18k"},
+    {"name": "قیمت مظنه", "slug": "mazaneh"},
+    {"name": "قیمت هر گرم طلا", "slug": "gold_18k"},
     {"name": "دلار آزاد", "slug": "dollar"},
     {"name": "انس جهانی", "slug": "ounce"},
     {"name": "گزارش کامل", "slug": "full_report"}
 ]
 
 def get_tgju_data():
-    """دریافت تمامی قیمت‌ها (طلا، دلار و انس) از سایت TGJU"""
+    """دریافت تمامی قیمت‌ها (طلا، مظنه، دلار و انس) از سایت TGJU"""
     url = 'https://www.tgju.org/'
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
@@ -29,15 +30,29 @@ def get_tgju_data():
                 return "خطا"
             except:
                 return "خطا"
+                
+        def to_toman(price_str):
+            """تبدیل رشته قیمتی ریال به تومان با جداکننده هزارگان"""
+            if price_str == "خطا":
+                return price_str
+            try:
+                # حذف کاماها و تبدیل به عدد صحیح (بدون در نظر گرفتن اعشار احتمالی)
+                clean_str = price_str.replace(',', '').split('.')[0]
+                num = int(clean_str)
+                # تقسیم بر ۱۰ برای تبدیل ریال به تومان و فرمت‌بندی مجدد با کاما
+                return f"{num // 10:,}"
+            except Exception:
+                return price_str
 
         return {
-            "dollar": get_text_by_row('price_dollar_rl'),
-            "gold_18k": get_text_by_row('geram18'),
-            "ounce": get_text_by_row('ons') # دریافت انس جهانی از TGJU
+            "dollar": to_toman(get_text_by_row('price_dollar_rl')),
+            "gold_18k": to_toman(get_text_by_row('geram18')),
+            "mazaneh": to_toman(get_text_by_row('mesghal')),  # دریافت مظنه
+            "ounce": get_text_by_row('ons') # انس جهانی بر اساس دلار است و نیازی به تبدیل ندارد
         }
     except Exception as e:
         print(f"Error TGJU: {e}")
-        return {"dollar": "خطا", "gold_18k": "خطا", "ounce": "خطا"}
+        return {"dollar": "خطا", "gold_18k": "خطا", "mazaneh": "خطا", "ounce": "خطا"}
 
 def get_current_datetime():
     """دریافت تاریخ و زمان فعلی تهران"""
@@ -52,22 +67,25 @@ def get_price_by_slug(slug):
     if slug == "ounce":
         return f"💰 انس جهانی: <b>{data['ounce']}</b> دلار"
     elif slug == "dollar":
-        return f"💵 دلار آزاد: <b>{data['dollar']}</b> ریال"
+        return f"💵 دلار آزاد: <b>{data['dollar']}</b> تومان"
     elif slug == "gold_18k":
-        return f"⚜️ طلا ۱۸ عیار: <b>{data['gold_18k']}</b> ریال"
+        return f"⚜️ قیمت هر گرم طلای ۱۸ عیار: <b>{data['gold_18k']}</b> تومان"
+    elif slug == "mazaneh":
+        return f"⚖️ قیمت مظنه طلا: <b>{data['mazaneh']}</b> تومان"
     elif slug == "full_report":
         return get_full_report()
     else:
         return "گزینه نامعتبر است."
 
 def get_full_report():
-    """این تابع برای ارسال خودکار به کانال استفاده می‌شود"""
+    """این تابع برای ارسال خودکار به کانال و بات استفاده می‌شود"""
     data = get_tgju_data()
     date_time = get_current_datetime()
     
     return (
-        f"⚜️ طلا ۱۸ عیار: <b>{data['gold_18k']}</b>\n"
-        f"💰 اونس جهانی: <b>{data['ounce']}</b>\n"
-        f"💵 دلار آزاد: <b>{data['dollar']}</b>\n"
-        f"{date_time} 📅"
+        f"⚖️ قیمت مظنه طلا: <b>{data['mazaneh']}</b> تومان\n"
+        f"⚜️ هر گرم طلای ۱۸ عیار: <b>{data['gold_18k']}</b> تومان\n"
+        f"💰 اونس جهانی: <b>{data['ounce']}</b> دلار\n"
+        f"💵 دلار آزاد: <b>{data['dollar']}</b> تومان\n"
+        f"📅 {date_time}"
     )
